@@ -1,1 +1,1 @@
-
+An introduction to machine learning concepts and algorithms, including classification, clustering, and regression. Topics include k-means clustering, nearest neighbors classification, decision trees, naive Bayes, logistic regression, support vector machines, and neural networks. Special focus will be on practical aspects of machine learning, including data preparation, experimental design, and modern tools for building machine learning systems. Basic probability theory knowledge is required.
