@@ -1,1 +1,1 @@
-
+This course provides an introduction to problem-driven (as opposed to method-driven) applications of mathematics with a focus on design and analysis of models using tools from all parts of mathematics.
