@@ -1,0 +1,93 @@
+---
+title: "CS 422: Homework #2"
+author: "Tiffany Wong, Illinois Institute of Technology"
+output:
+  html_document:
+    toc: yes
+    df_print: paged
+  html_notebook:
+    toc: yes
+    toc_float: yes
+--- 
+
+### Part 1-A
+
+```{r}
+# read in the us-covid.deaths.csv into a dataframe 
+df <- read.csv("/Users/tiffwong/Desktop/cs422/hw/hw 2/us-covid-deaths.csv") 
+
+# get rid of all rows that contain NA and only keep the complete rows
+df_complete <- df[complete.cases(df), ]
+
+# take rows 0 to 6 from the df 
+print.data.frame(df_complete[0:6, ]) 
+
+```
+
+### Part 1-B 
+
+```{r}
+library(psych)
+# using on pairs.panels() to create correlation plot with three columns: phd, s.f.ratio, grad rate 
+pairs.panels(df_complete[ , c('total_deaths', 'icu_patients', 'hosp_patients', 'stringency_index', 'reproduction_rate', 'total_tests', 'positive_rate')]) 
+
+```
+
+#### Part 1-B (i) 
+The response variable (total_deaths) has the highest positive correlation with the predictor total_tests, where the correlation coefficient is 0.99. 
+
+#### Part 1-B (ii) 
+The response variable (total_deaths) has the highest negative correlation with the predictor stringency_index, where the correlation coefficient is -0.66. 
+
+#### Part 1-B (iii) 
+There is a high positive correlation between total deaths and total tests, but I don't think it's because more tests causes more deaths, but as the COVID-19 pandemic was happening, both number of tests and number of deaths were increasing as time passed. So there seems to be a high correlation between the two, but it's most likely just more people getting tested while previously positive-tested people were dying. One factor is not the main causation factor of the other. 
+On the other hand, there is a high negative correlation between total deaths and stringency index. The stringency index is the 9 response indicators that will evaluate how the government is responding to COVID. It makes sense that the two factors have an inverse relationship because it means that the higher the stringency index is, the lower the total deaths. This makes sense because the higher the stringency index, the higher the safety measures being taken to ensure that people are social distancing, so people are being more careful around one another and grouping less in social settings. I can't say that the stringency index is the sole reason why the number of total deaths will increase or decrease, but it's something to consider that inversely impacts it. 
+
+
+### Part 1-C
+
+```{r} 
+# get rid of date column 
+df_complete = df_complete[ , c('total_deaths', 'icu_patients', 'hosp_patients', 'stringency_index', 'reproduction_rate', 'total_tests', 'positive_rate')]
+
+# perform linear regression fo all parameters against total_deaths 
+model <- lm(total_deaths ~ ., data=df_complete) 
+
+# print out the summary of the model 
+summary(model)
+```
+
+### Part 1-D
+
+Using the summary of the model, this is indeed a good linear regression model by looking at the F-statistic given in the summary of the model. If there is no relationship between response and predictors, F-statistic is close to 1. The p-value associate with the F-statistic is very small, giving me strong evidence that one of th predictors is associated with increased total deaths. 
+Also, the  R-squared value is 0.9922, and with r-squared meaning variation divided by total variation, this means that this linear regression model explains 99.22% of total variability. And then I have the adjusted R-value, which takes into account all the predictors. In a model, when an adjusted R-squared value begins to decrease from the original r-squared value, that means the model has enough predictors. The adjusted r-squared value is high, so this linear regression model is good. 
+
+
+### Part 1-E
+
+Using the summary of the model, to see if a predictor is statistically significant, I have to look at the p-value of the predictors in the contest of the following hypothesis test: If p-value is equal to 0, there is no relationship between predictor and response variable and if p-value if not equal to 0, there is some relationship between predictor and response variable. 
+The p-values for icu_patients, stringency_index, reproduction_rate, total_tests, and positive rate appear to imply that there is a relationship between these predictors and total_deaths because the p-value is low. 
+The p-value for hosp_patients appears to imply that there may not be a relationship between hospital patients and total_deaths as the p-value is not 0, bu the null hypothesis of the two factors having absolutely no effect cannot be rejected. 
+
+
+### Part 1-F 
+
+Of all the predictors, there is one that is not statistically significant: hosp_patients = number of hospital patients. I would say that the number of hospital patients is not statistically significant to the total deaths in a hospital because the hospital will most likely continuously being filled with people during the COVID-19 pandemic, so while the number of deaths should theoretically take away from the number of patients, the hospital most likely stays filled up with patients instead of fluctuating in number.  
+
+
+### Part 1-G 
+
+After removing the total_tests predictor I identified in part (b)(i), I get new p-values for all the remaining predictors. This model is worse than the previous model at part (d) because its adjusted R-squared value is 0.6675 and decreased from the original r-squared value, which was 0.6715. This means that now, only 66.75% of the variability in the data can be explained. The decrease indicates that the model's quality has decreased sine the variable with the highest correlation was removed. 
+
+
+```{r}
+# remove total_tests from df_complete 
+df_complete_1g = df_complete[ , c('total_deaths', 'icu_patients', 'hosp_patients', 'stringency_index', 'reproduction_rate', 'positive_rate')]
+
+# perform linear regression fo all parameters against total_deaths 
+model <- lm(total_deaths ~ ., data=df_complete_1g) 
+
+# print out the summary of the model 
+summary(model)
+
+```

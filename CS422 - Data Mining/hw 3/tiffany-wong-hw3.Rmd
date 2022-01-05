@@ -1,0 +1,234 @@
+---
+title: "CS 422: Homework #3"
+author: "Tiffany Wong, Illinois Institute of Technology"
+output:
+  html_document:
+    toc: yes
+    df_print: paged
+  html_notebook:
+    toc: yes
+    toc_float: yes
+--- 
+```{r} 
+# import dplyr package 
+# install.packages("dplyr") 
+library("dplyr") 
+library("rpart")
+library("rpart.plot")
+
+# install.packages("ISLR") 
+library(ISLR)
+
+# get 'random' seed to seeds the pseudo-random number generator for reproducibility
+set.seed(1122)
+
+# sample() picks 352 random numbers between 1 and the total number of rows in the Auto dataset, without replacement
+index <- sample(1:nrow(Auto), 0.95*dim(Auto)[1]) 
+
+# training df  
+train.df <- Auto[index, ] 
+
+# testing df 
+test.df <- Auto[-index, ] 
+```
+
+## Part 1-A
+
+```{r} 
+# get rid of name column 
+train.df = subset(train.df, select = -c(name)) 
+
+# create a model with new train.df
+model <- lm(mpg ~ ., data=train.df) 
+
+summary(model) 
+
+# goodies from model 
+# names(model)
+``` 
+
+### Part 1-A(i)
+(i) Why is using name as a predictor not a reasonable thing to do?
+
+Using name as a predictor isn't reasonable because there wouldn't be any correlation between the name of the car with the miles per gallon in a car with simply numbers. Essentially, there can't be any correlation detected between letters and a number. 
+
+
+
+### Part 1-A(ii)
+
+```{r} 
+n <- dim(train.df)[1]
+p <- dim(train.df)[2] - 1
+RSS  <- sum((train.df$mpg - model$fit)^2)
+RSE  <- sqrt(1/(n-p-1)*RSS) # 
+TSS  <- sum((train.df$mpg - mean(train.df$mpg))^2)
+F    <- ((TSS - RSS)/3)/(RSS/(n-p-1))
+R.sq <- cor(train.df$mpg, model$fit)^2 
+
+print(paste("R2 = ", R.sq))  
+print(paste("RSE = ", RSE)) 
+print(paste("RMSE = ", sqrt(RSS/n)))
+```
+
+(ii) Print the summary of the regression model, and comment on how well the model fits the data by studying the R2, RSE, and RMSE. (Print out the values of R2 , RSE and RMSE.) 
+
+The summary of the regression model states that R2=0.8170336. With r-squared meaning variation divided by total variation, this means that this linear regression model explains 81.70% of total variability. The RSE is the relative squared error, and in this case, I got 3.36691 for RSE and 3.3 for RMSE, which is a good measure of accuracy, but it's scale-dependent.  
+
+### Part 1-A(iii) 
+
+```{r}
+plot(model$fitted.values, model$residuals, 
+     xlab = "Fitted values\nlm(mpg ~.)", 
+     ylab="Residuals", 
+     main="Residuals vs. Fitted"); 
+abline(0, 0)
+
+``` 
+
+### Part 1-A(iv) 
+
+```{r}
+hist(model$residuals, xlab = "Model Residuals", 
+     main="Auto Residual Histogram")
+
+``` 
+The histogram of residuals of the model does follow a Gaussian distribution, where its concentrated in the middle of the historgram and fans out downward. The distribution of the residuals is normally distributed. 
+
+
+## Part 1-B 
+
+``` {r}
+summary(model)
+```
+
+### Part 1-B(i) 
+
+Using the summary of the model, to see if a predictor is statistically significant, I have to look at the p-value of the predictors in the context of the following hypothesis test: If p-value is equal to 0, there is no relationship between predictor and response variable and if p-value if not equal to 0, there is some relationship between predictor and response variable. 
+The p-values for weight, year, and origin appear to imply that there is a relationship between these predictors and mpg because the p-value is low. 
+The p-value for cylinders, displacement, horsepower, and acceleration appears to imply that there may not be a relationship between hospital patients and total_deaths as the p-value is not 0, but the null hypothesis of the two factors having absolutely no effect cannot be rejected. 
+
+
+### Part 1-B(ii) 
+
+```{r} 
+# get rid of name column 
+train.df = subset(train.df, select = -c(cylinders, displacement, horsepower, acceleration)) 
+
+# create a model with new train.df
+model2 <- lm(mpg ~ ., data=train.df) 
+
+summary(model2) 
+
+n <- dim(train.df)[1]
+p <- dim(train.df)[2] - 1
+RSS  <- sum((train.df$mpg - model2$fit)^2)
+RSE  <- sqrt(1/(n-p-1)*RSS) # 
+TSS  <- sum((train.df$mpg - mean(train.df$mpg))^2)
+F    <- ((TSS - RSS)/3)/(RSS/(n-p-1))
+R.sq <- cor(train.df$mpg, model2$fit)^2 
+
+print(paste("R2 = ", R.sq))  
+print(paste("RSE = ", RSE)) 
+print(paste("RMSE = ", sqrt(RSS/n)))
+
+``` 
+
+The summary of the regression model states that R2=0.81258059379783 With r-squared meaning variation divided by total variation, this means that this linear regression model explains 81.25% of total variability. The RSE is the relative squared error, and in this case, I got 3.38907 for RSE and 3.370803 for RMSE, which is a good measure of accuracy, but it's scale-dependent.  
+
+
+
+### Part 1-B(iii) 
+
+```{r}
+plot(model2$fitted.values, model2$residuals, 
+     xlab = "Fitted values\nlm(mpg ~.)", 
+     ylab="Residuals", 
+     main="Residuals vs. Fitted (with predictors)"); 
+abline(0, 0)
+
+``` 
+
+
+### Part 1-B(iv) 
+
+```{r}
+hist(model2$residuals, xlab = "Model Residuals", 
+     main="Predictors Residual Histogram")
+
+``` 
+The histogram of residuals of the model does follow a Gaussian distribution, where its concentrated in the middle of the historgram and fans out downward. The distribution of the residuals is normally distributed, pretty much the same as part A(iv). 
+
+
+
+### Part 1-B(v) 
+Comparing the summaries of the model produced in (a) and in (b), including residual analysis of each model.
+Which model do you think is better, and why?
+
+```{r} 
+summary(model) 
+
+summary(model2) 
+```
+I think the first model is better becasue it has a greater R-squared value, where the first model (with all the variables) has a R-squared value of 0.817 and the second model (with the 3 predictor variables) has a R-sqaured value of 0.8126. With r-squared meaning variation divided by total variation, this means that the first linear regression model explains 81.7% of total variability while the second model only explains 81.27% of total variability. 
+
+
+
+## Part 1-C 
+
+```{r} 
+# get rid of all columns except mpg, year, weight, origin column 
+test.df = subset(test.df, select = c(mpg, year, weight, origin)) 
+# names(test.df) 
+
+predicted <- predict(model2, newdata=test.df) 
+
+df <- data.frame(predict = predict.lm(model2, test.df, interval = 'confidence', level = 0.95), real = test.df$mpg) 
+df
+```
+
+
+## Part 1-D 
+
+```{r} 
+df$Matches <- as.numeric(apply(df, MARGIN = 1, FUN = function(x) x[4] >= x[2] & x[4] <= x[3])) 
+df 
+
+match_count <- sum(df['Matches']) 
+
+
+print(paste("Total observations correctly predicted: ", match_count))
+``` 
+
+
+## Part 1-E
+
+```{r} 
+predicted <- predict(model2, newdata=test.df) 
+
+df2 <- data.frame(predict = predict.lm(model2, test.df, interval = 'prediction', level = 0.95), real = test.df$mpg) 
+df2
+
+df2$Matches <- as.numeric(apply(df2, MARGIN = 1, FUN = function(x) x[4] >= x[2] & x[4] <= x[3])) 
+df2 
+
+match_count <- sum(df2['Matches']) 
+
+
+print(paste("Total observations correctly predicted: ", match_count))
+```
+
+
+## Part 1-F 
+
+### Part 1-F(i)
+Which of (d) or (e) results in more matches?
+
+Part e's results get more matches, all of the values are in the predicted interval. 
+
+
+
+### Part 1-F(ii) 
+Why? 
+
+Part e's results get more matches because the prediction interval predicts in what range a future individual observation will fall, where a confidence interval shows the likely range of values associated with the mean. It's the difference between predicting where a value will end up versus giving a range based on a singular summary value. 
+

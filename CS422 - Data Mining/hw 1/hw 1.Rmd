@@ -1,0 +1,165 @@
+---
+title: "CS 422: Homework #1"
+author: "Tiffany Wong, Illinois Institute of Technology"
+output:
+  html_document:
+    toc: yes
+    df_print: paged
+  html_notebook:
+    toc: yes
+    toc_float: yes
+--- 
+
+### Part 1-A
+
+```{r} 
+# import dplyr package 
+# install.packages("dplyr") 
+library("dplyr") 
+```
+
+```{r} 
+# read in the college.csv into a dataframe 
+df <- read.csv("/Users/tiffwong/Desktop/cs422/hw/hw 1/College.csv") 
+
+# take rows 0 to 5 and then columns 1,5,8,10 from the df 
+print.data.frame(df[0:5, c(1, 5, 8, 10)])
+```
+
+### Part 1-B
+
+```{r}
+# counts number of private colleges WITHOUT looping 
+private <- length(which(df$Private == "Yes"))
+
+# counts number of public colleges WITHOUT looping 
+public <- length(which(df$Private == "No"))
+
+#print answer statement
+cat("There are", private, "private colleges, and", public, "public colleges in the dataset.") 
+```
+
+### Part 1-C 
+
+```{r}
+# create subset of df with the following columns: Private, Apps, Accept, Enroll, PhD, perc.alumni, S.F.Ratio, and Grad.Rate 
+new_df <- df %>% select(Name, Private, Apps, Accept, Enroll, PhD, perc.alumni, S.F.Ratio, Grad.Rate) 
+new_df 
+
+```
+
+### Part 1-D(i) +  (iii) extra credit
+```{r}
+# subset the df by private colleges first
+private_df <- new_df[(new_df$Private == 'Yes'), ]
+
+# create a vector for the number of bins in the histogram for private phd holders
+colors = rainbow(10)
+
+# histogram of PhD holders in private colleges 
+hist(private_df$PhD, main='Number of PhD Holders in Private Colleges', 
+     xlab='Number of PhD Holders', col=colors) 
+
+``` 
+
+### Part 1-D(ii) +  (iii) extra credit
+
+```{r}
+# subset the df by private colleges first
+public_df <- new_df[(new_df$Private == 'No'), ]
+
+# create a vector for the number of bins in the histogram for public phd holders
+colors = rainbow(8)
+
+# histogram of PhD holders in public colleges 
+hist(public_df$PhD, main='Number of PhD Holders in Public Colleges', 
+     xlab='Number of PhD Holders', col=colors) 
+
+``` 
+
+### Part 1-E(i) 
+```{r} 
+# order the dataframe in ascending order to get the lowest to highest grad rate 
+ascending_order <- new_df[order(new_df$Grad.Rate), ]
+
+print.data.frame(ascending_order[1:5, c('Name', 'Grad.Rate')]) 
+```
+
+### Part 1-E(ii) 
+
+```{r} 
+# order the dataframe in descending order to get the highest to lowest grad rate 
+descending_order <- new_df[order(-new_df$Grad.Rate), ]
+
+print.data.frame(descending_order[1:5, c('Name', 'Grad.Rate')]) 
+```
+
+### Part 1-F 
+
+```{r} 
+# install.packages("psych") 
+library(psych) 
+```
+
+### Part 1-I(i)
+
+```{r} 
+# using on pairs.panels() to create correlation plot with three columns: phd, s.f.ratio, grad rate 
+pairs.panels(new_df[ , c('PhD', 'S.F.Ratio', 'Grad.Rate')])  
+
+```
+
+### Part 1-I(ii) 
+
+Which two attributes have the highest correlation? Explain the reason behind this positive correlation (i.e., does this correlation make sense? Why?). 
+
+The two attributes with the highest correlation is Grad.Rate and PhD, meaning there is a high correlation between the graduation rate of a college with the number of PhD holders in said school. This makes sense to me because it's possible that a lot of colleges have a pipeline where students who graduated from their undergrad program go straight into their Masters/PhD programs. So that would make sense why the higher the graduation rate is, the more PhD holders in the school. 
+
+
+### Part 1-I(iii) 
+
+Which two attributes exhibit the lowest correlation? Explain the reason behind this negative correlation (i.e., does this correlation make sense? Why?).
+
+The two attributes with the lowest correlation is Grad.Rate and S.F.Ratio, meaning there is a high correlation between the graduation rate of a college with the student to faculty ratio in said school. This correlation could be higher in order for it to make sense to me because I think having a lower student to professor ratio (meaning there aren't that many students in a class with one professor), could be beneficial to helping a student guarantee graduation. However, the variable is labeled student to faculty, meaning it could be including staff members whose job isn't to help the students academically. All in all, I think it makes sense that the two variables have the lowest correlation because I personally won't attribute a college's graduation rate to its student to faculty ratio. 
+
+
+### Part 1-G 
+
+Which alumni donate more to their colleges --- those who go to public schools or those who go to private schools? 
+
+As I found out from the boxplot visual below, alumni donate more to their college if they went to to a private school. 
+
+```{r} 
+# using private_df, public_df, and boxplot(), answer the following question with boxplots to compare: 
+# Which alumni donate more to their colleges --- those who go to public schools or those who go to private schools? 
+
+boxplot(perc.alumni~Private, data=df, main='Alumni Donations vs Private and Public Colleges', xlab='Private Status', ylab='Percentage Alumni Donates', col='purple', border='pink') 
+
+``` 
+
+### Part 1-H(i) 
+
+What is the median expenditure per student?
+Looking at the graph created in 1-H(iii) below, the median expenditure per student looks to be about $7,500, where the 50% is above 5k expenditure, but not quite 10k. 
+
+
+### Part 1-H(ii) 
+
+80% of the students pay less than how many dollars?
+80% of students pay less than $15,000. 
+
+
+
+### Part 1-H(iii)
+```{r} 
+plot(ecdf(df$Expend), main="Student's Expenditure Cumulative Distribution Function Plot", xlab='Expenditure Amount', ylab='Cumulative Distribution Function Amount') 
+grid(nx=20, ny=20, col='blue')  
+``` 
+
+
+
+
+
+
+
+
