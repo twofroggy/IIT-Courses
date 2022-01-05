@@ -1,0 +1,67 @@
+---
+title: "CS 422: Homework #4"
+author: "Tiffany Wong, Illinois Institute of Technology"
+output:
+  html_document:
+    toc: yes
+    df_print: paged
+  html_notebook:
+    toc: yes
+    toc_float: yes
+--- 
+
+```{r}
+# import libraries 
+library("dplyr") 
+library("rpart")
+library("rpart.plot")
+
+# use the built in Iris dataset in R 
+library(datasets)
+data(iris)
+summary(iris)
+``` 
+```{r} 
+model <- rpart(Species ~ ., method='class', data = iris, 
+               control=rpart.control(minsplit=2, minbucket=1))
+rpart.plot(model, extra=104, fallen.leaves=T, type=4, main="Iris Dataset Decision Tree") 
+```
+
+### Part B 
+
+```{r}
+print("Level 1, Vertex 1: Default class label is setosa") 
+print("Level 1, Vertex 2: Default class label is versicolor") 
+
+print("Level 2, Vertex 1: Default class label is versicolor") 
+print("Level 2, Vertex 2: Default class label is virginica") 
+
+print("Level 3, Vertex 1: Default class label is versicolor") 
+print("Level 3, Vertex 2: Default class label is virginica") 
+``` 
+
+### Part C 
+
+``` {r}
+print("Level 1, split on attribute: Petal.Length") 
+print("Split points: < 2.5 left subtree, >= 2.5 right subtree")
+print("Level 2, split on attribute: Petal.Width") 
+print("Split points: < 1.8 left subtree, >= 1.8 right subtree")
+print("Level 3, split on attribute: Petal.Length") 
+print("Split points: < 5.0 left subtree, >= 5.0 right subtree")
+```
+
+### Part D 
+
+
+#### Part D-(i) 
+
+```{r} 
+print("The three numbers in the middle line signify the percentage of each flower type at each vertex. So for example, on the first level’s left subtree, where there is a split on the attribute is petal.length < 2.5, 100% is setosa flowers, 0% is vericolor and virginica flowers.")
+``` 
+
+#### Part D-(i) 
+
+```{r} 
+print("The last line indicates the percentage of the entire dataset size that is at the current vertex/node. So at all the end nodes, the percentages should sum up to 100%, which it does in this example: 33% + 32% + 4% + 31% = 100%.") 
+``` 

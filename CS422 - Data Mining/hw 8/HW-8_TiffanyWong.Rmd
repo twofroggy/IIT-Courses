@@ -1,0 +1,232 @@
+---
+title: "CS 422: Homework #8"
+author: "Tiffany Wong, Illinois Institute of Technology"
+output:
+  html_document:
+    toc: yes
+    df_print: paged
+  html_notebook:
+    toc: yes
+    toc_float: yes
+---
+
+# 2.1 K-means clustering 
+
+```{r} 
+library(ggplot2)
+# Set working directory as needed
+setwd("/Users/tiffwong/Desktop/cs422/hw/hw 8/")
+
+download.file("https://people.sc.fsu.edu/~jburkardt/datasets/hartigan/file19.txt", "file19.txt")
+
+hdr <- c("Name", "I", "i", "C", "c", "P", "p", "M", "m") 
+df1 <- read.table("file19.txt", skip = 21, comment.char="#", col.names = hdr, check.names = FALSE) 
+
+df2 = subset(df1, select = -c(c))
+```
+## (a) Data cleanup
+
+### (i) Think of what attributes, if any, you may want to omit from the dataset when you do the clustering. Indicate all of the attributes you removed before doing the clustering. 
+
+The attributes "C" and "c" are very similar in nature so removing one of them won't affect the dataset greatly, while still maintaining the impact/significance of the attribute of top and bottom canines. 
+I removed the bottom canines attribute. 
+
+
+```{r} 
+df2 <- na.omit(df2)
+scaled_df <- scale(subset(df2, select = -c(Name)))
+names <- subset(df2, select = c(Name)) 
+
+df <- cbind(names,scaled_df) 
+
+write.csv(df,"/Users/tiffwong/Desktop/cs422/hw/hw 8/animalteeth.csv", sep=",", row.names = FALSE)
+```
+
+### (ii) Does the data need to be standardized? (Briefly, using 1-2 sentences, support your answer.) 
+
+In my opinion, yes the data does need to be standardized. This is because the ranges of the attributes were inconsistent, where the bigger the size of an animal would usually have more teeth in their mouth. To identify the most important independent variables, the attributes have to be in the same range to be comparable to one another. 
+
+
+## (b) Clustering 
+
+### Determine how many clusters are needed by running the WSS or Silhouette graph. Plot the graph using fviz_nbclust(). 
+
+As shown by the WSS graph below, I would estimate that the number of numbers needed is 11. 
+
+```{r} 
+library(factoextra)
+library(NbClust) 
+df <- read.csv("animalteeth.csv")
+
+fviz_nbclust(scaled_df, kmeans, method = "wss", k.max=20) +
+    geom_vline(xintercept = 11, linetype = 2)+
+  labs(subtitle = "Elbow method")
+```
+### (ii) Once you have determined the number of clusters, run k-means clustering on the dataset to create that many clusters. Plot the clusters using fviz_cluster(). 
+
+```{r} 
+# K-means clustering
+km.res <- kmeans(scaled_df, centers = 11)
+
+# Visualize kmeans clustering
+# use repel = TRUE to avoid overplotting
+fviz_cluster(km.res, data = scaled_df) 
+``` 
+
+### (iii) How many observations are in each cluster? 
+
+Printing out the kmeans object, I get that we did a k-means clustering with 11 clusters of sizes: 1, 6, 7, 4, 7, 15, 6, 4, 2, 3, 11. 
+
+```{r} 
+# print out the kmeans object for the answers for (iii), (iv), and (v) 
+km.res
+```
+
+### (iv) What is the total SSE of the clusters?
+
+For the total SSE of the clusters, it's 455 when recalling the totss object from the kmeans object. 
+
+```{r} 
+# total sum of squares 
+km.res$totss
+```
+
+### (v) What is the SSE of each cluster? 
+
+Printing out the kmeans object, I got the following for the SSE of each cluster: 
+0.000000e+00 
+2.332641e+00 
+7.549645e-31 
+6.980540e+00 
+2.641332e+00 
+1.111705e+01 
+5.546678e-32
+6.226867e+00 
+3.376358e-01 
+1.830205e+00 
+3.544211e+00
+
+```{r} 
+# sum of squares for each cluster
+km.res$withinss
+```
+
+### (vi) Perform an analysis of each cluster to determine how the mammals are grouped in each cluster, and whether that makes sense? Act as the domain expert here; clustering has produced what you asked it to. Examine the results based on your knowledge of the animal kingdom and see whether the results meet expectations. Provide me a summary of your observations.
+
+The results of how each cluster grouped together makes sense beased on my knowledge of the animal kingdom. Many clusters have similar values for their different attributes. The SSE of each cluster is alos very low, which makes me think that it proves that these clusters make sense in terms of having identical values. 
+
+```{r} 
+for (i in 1:11) { 
+  print("--------")
+  out <- paste0("cluster ", i) 
+  print(out) 
+  eachclust <- paste0(which(km.res$cluster == i)) 
+  for (j in 1:length(eachclust)) {
+    print(names[eachclust[j],]) 
+  }
+}
+```  
+
+# 2.2 dbscan clustering 
+
+```{r}
+df = read.csv("s1.csv")
+```
+
+## (a) Do you think it is necessary to standardize the dataset? Justify your answer. 
+
+In my opinion, now the data does not need to be standardized. This is because the plotted version of the original dataset showed that the data already has natural clustering, so no need to standardize the dataset. 
+
+
+## b) 
+
+### (i) Plot the dataset.
+
+```{r} 
+plot(df) 
+```
+
+### (i) Describe in 1-2 sentences what you observe (visually) in the plot: how many clusters do you see? Are they well-separated? 
+
+I can observe that there are 15 clusters in the scaled data set. The clusters are well-separated and seemingly the distinct. 
+
+## (c) Let’s see how many clusters K-Means finds. 
+
+### (i) Using the “wss” method, draw the scree plot for the optimal number of clusters. 
+
+```{r} 
+fviz_nbclust(df, kmeans, method = "wss", k.max=20) +
+    geom_vline(xintercept = 15, linetype = 2) +
+  labs(subtitle = "Elbow method") 
+``` 
+
+### (ii) Using the “silhouette” method, draw the scree plot for the optimal number of clusters.
+
+```{r} 
+fviz_nbclust(df, kmeans, method = "silhouette", k.max=20) + labs(subtitle = "Silhouette method") 
+``` 
+
+### (iii) What do you think is the appropriate number of clusters if we were to use K-Means clustering on this dataset?
+
+If we were to use K-Means clustering on this data set, the appropriate number of clusters would be 19 according to the Silhouette method, and it's also supported by the Elbow method since it's going downward. 
+
+
+## (d) 
+
+### (i) Using the answer to (c)(iii), perform K-Means clustering on the dataset and plot the results. 
+
+```{r} 
+# K-means clustering
+km.res <- kmeans(df, centers = 15)
+
+# Visualize kmeans clustering
+# use repel = TRUE to avoid overplotting
+fviz_cluster(km.res, data = df) 
+``` 
+### (ii) Comment on how K-Means has clustered the dataset. (1-2 sentences.)
+
+K-Means has clustered the dataset with 15 clusters of sizes 297, 340, 339, 630, 351, 685, 117, 98, 222, 121, 355, 214, 652, 227, 352. It has a total SSE of 5.76807e+14. 
+The SSE of each cluster is the following: 6.241982e+11, 7.308903e+11, 6.448136e+11, 5.166000e+12, 5.706723e+11, 7.278677e+12, 1.084766e+11, 1.579097e+11, 2.534998e+11, 1.954507e+11, 7.788448e+11, 1.791516e+11, 6.612229e+12, 2.226263e+11, and 8.046913e+11. 
+
+
+## (e) We will now perform dbscan on this dataset. 
+
+
+### (i) What is the value of MinPts that you think is reasonable for this dataset? Why?
+
+The value of MinPts I think is reasonable for this data set is 4. This comes from the thinking that MinPts should be greater than or equal to the dimensionality of the data set, which means it should be 2*2 since this data has 2 dimensions. 
+
+```{r} 
+library(fpc) 
+library(dbscan)
+``` 
+
+### (ii) In order to find the value of ɛ (eps), we need to calculate the average distance of every point to its k nearest neighbors. Set the value of k to be the result you obtained in (e)(i). Then, using this value determine what the correct value for ɛ should be. (Hint: Look at the online manual page for the function kNNdistplot()).
+
+So ɛ (eps) is the maximum distance between two points, and to find that using the kNNdistplot(), I should look for the point where there is an elbow like bend that because that would correspond to the optimal eps value. That's because at that point, a sharp change in the distance occurs, meanign this value serves as a threshold. 
+
+After setting the value of k=4 from (e)(i), I found that the value of ɛ should be 10,000.  
+
+```{r} 
+dbscan::kNNdistplot(df, k = 4) 
+abline(h = 0.15, lty = 2)
+```
+
+Using the scree plot from kNNdistplot(), you should find the best value of ɛ that clusters the dataset into the expected number of clusters determined in (c)(iii). To do this, perform a grid search on ɛ, and for each value of ɛ, run dbscan algorithm and visualize the clustering results. (You can do this manually in the R REPL and find the best value for ɛ, you do not need to write a loop.)
+
+I'm not sure how I would get the scree plot from kNNdistplot(), but with the original unstandardized data set, I am going to use epsilon = 10,000, MinPts=4. 
+
+
+```{r} 
+library(fpc) 
+library(dbscan)
+
+Dbscan_cl <- fpc::dbscan(df, eps = 10000, MinPts = 4) 
+plot(Dbscan_cl, df, main = "DBSCAN", frame=FALSE) 
+``` 
+
+```{r}
+Dbscan_cl
+```
+
+At minPts = 4, eps = 10,000, there are 71 clusters. 

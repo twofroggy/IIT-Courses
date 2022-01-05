@@ -1,0 +1,270 @@
+---
+title: "CS 422: Homework #5"
+author: "Tiffany Wong, Illinois Institute of Technology"
+output:
+  html_document:
+    toc: yes
+    df_paste0: paged
+  html_notebook:
+    toc: yes
+    toc_float: yes
+--- 
+
+# 2.1 Exploratory data analysis on the Hotels Bookings dataset.
+
+
+## (a) How many observations exist in the dataset for hotel type H1 and hotel type H2? Use R commands to paste0 the frequency of the hotel types. (Hint: Do not write a loop, one R command will do this.)
+
+```{r} 
+# Set working directory as needed
+setwd("/Users/tiffwong/Desktop/cs422/hw/hw 5/")
+
+df <- read.csv("hotel_bookings.csv") 
+paste("H1:", sum(df$hotel == "Resort Hotel"))
+paste("H2:", sum(df$hotel == "City Hotel"))
+```
+
+## (b) What is the distribution of the class label in the dataset? Your output should look like the following:
+Number of guests who canceled reservation: XXXX
+Number of guests who did not cancel the reservation: XXXX
+
+```{r}
+paste0("Number of guests who canceled reservation:  ", sum(df$is_canceled == 1))
+paste0("Number of guests who did not cancel the reservation: ", sum(df$is_canceled == 0))
+
+```
+
+## (c) Which customer has the most reservations? Your output should look like the following:
+Customer type with the most reservations is XXXX, with YYYY reservations
+(Hint: Use the command from (a), and play around with which.max(), and use cat() and paste() to create the above output string). 
+
+```{r}
+freq_table <- table(df$customer_type)
+index <- which.max(freq_table)
+most_frequent_value <- freq_table[index]
+most_frequent_type <- names(freq_table)[index]
+paste0("Customer type with the most reservations is ", most_frequent_type, ", with ", most_frequent_value, " reservations") 
+
+```
+
+## (d) What was the most number of parking spaces required by customers? And how many customers requested that many parking spaces? Your output should look like the following, where XXXX is the number of customers and YYYY is the number of parking spaces:
+XXXX customers required the most number of parking spaces (YYYY).
+(Hint: Use the same hint from (c)). 
+
+
+```{r} 
+max_spaces <- df$required_car_parking_spaces[which.max(df$required_car_parking_spaces)]
+customers <- sum(df$required_car_parking_spaces == max_spaces)
+paste0(customers, " customers required the most number of parking spaces (", max_spaces, ").") 
+
+```
+
+## (e) What was the least number of parking spaces required by customers? And how many customers requested that many parking spaces? Your output should look like the following, where XXXX is the number of customers and YYYY is the number of parking spaces:
+XXXX customers required the least number of parking spaces (YYYY).
+(Hint: Use the same hint from (c)). 
+
+```{r} 
+min_spaces <- df$required_car_parking_spaces[which.min(df$required_car_parking_spaces)]
+customers <- sum(df$required_car_parking_spaces == min_spaces)
+paste0(customers, " customers required the least number of parking spaces (", min_spaces, ").") 
+
+```
+
+## (f) How many people who expressed a preference for a particular room type during reservation were actually assigned that specific room type? Your output should look like the following:
+XX.XX% of the people who expressed a room preference during reservation got the room during check-in. 
+
+```{r} 
+percentage <- sum(as.vector(df$reserved_room_type) == as.vector(df$assigned_room_type)) * 100 / nrow(df)
+paste0(round(percentage, 2), "% of the people who expressed a room preference during reservation got the rooms during check-in.") 
+``` 
+
+
+## (g) Order the dataset between city hotels and resort hotels. For each type of hotel, find the top 10 countries of origin that attract the most bookings. Plot a bar plot for each hotel type that contains the country of origin. Make sure you use colors for each bin and title each plot accordingly. The x-axis of the barplot should contain the 3- (or 2-) letter code for the country. At the very least, your graphical output should look like the following, but try to make it as attractive as possible. 
+
+```{r} 
+raw_city_hotels <- df[df$hotel == "City Hotel", ]
+city_hotels <- raw_city_hotels[!(raw_city_hotels$country == "NULL"),]
+freq_country <- table(city_hotels$country)
+countries <- tail(sort(freq_country), 10)
+raw_frequencies <- as.vector(countries)
+country_codes <- names(countries)
+barplot(raw_frequencies, main="Top 10 countries of origin for City Hotel", xlab="Country Code", names.arg=country_codes, col = rainbow(10))
+
+raw_resort_hotels <- df[df$hotel == "Resort Hotel", ]
+resort_hotels <- raw_resort_hotels[!(raw_resort_hotels$country == "NULL"),]
+freq_country_resort <- table(resort_hotels$country)
+countries_resort <- tail(sort(freq_country_resort), 10)
+raw_frequencies_resort <- as.vector(countries_resort)
+country_codes_resort <- names(countries_resort)
+barplot(raw_frequencies_resort, main="Top 10 countries of origin for Resort Hotel", xlab="Country Code", names.arg=country_codes_resort, col = rainbow(10)) 
+
+```
+
+
+## (h) You will note that the most visitors to either type of the hotels arrive from a specific country. 
+
+### h(i) paste0 the name of this country. 
+
+paste0("The country with the most visitors to either type of hotel is: Portugal (PRT).")
+
+
+### h(ii) What can you say about the origin of the dataset based on (i)?
+
+Based on my answer for (i), the origin of of the dataset could be in Portugal because that would mean more of the domestic customers are flying more frequent. 
+
+
+# 2.2 Decision Tree 
+
+## (a) Create the best decision tree model that you can to predict whether a booking will be canceled or not. You may use as many (or as least) number of predictor variables, it is up to you. Hint: Think!
+
+```{r} 
+library(rpart)
+library(rpart.plot)
+```
+
+### a(i) Plot the decision tree.
+```{r}
+set.seed(1122)
+index <- sample(1:nrow(df), 0.90*dim(df)[1])
+train.df <- df[index, ]
+test.df <- df[-index, ]
+
+model <- rpart(is_canceled ~ deposit_type + customer_type + is_repeated_guest + days_in_waiting_list, data = train.df, method = "class")
+rpart.plot(model, extra = 104, fallen.leaves = T, type = 4, main = "Customer Cancellation Decision Tree")
+``` 
+
+### a(ii) List which variables are important.
+
+The variables of importance are: 
+- customer_type: the type of customer may have different levels of commitment 
+- is_repeated_guest: repeating guests means they'll come back to the hotel 
+- deposit_type: the deposit type indicates how committed a customer is to their booking 
+- days_in_waiting_list: if a customer is on the wait list for too long, they may cancel their booking
+
+
+### a(iii)  Fit the model on the held out test dataset, and from the resulting confusion matrix, paste0 the following attributes: Accuracy, Error, Balanced Accuracy, Specificity, Sensitivity, and Precision. 
+```{r} 
+pred <- predict(model, test.df, type="class")
+confusion_matrix <- table(pred, test.df$is_canceled)
+true_negative <- confusion_matrix[1, 1]
+true_positive <- confusion_matrix[2, 2]
+false_negative <- confusion_matrix[1, 2]
+false_positive <- confusion_matrix[2, 1]
+
+accuracy <- round(((true_negative + true_positive)/(true_negative + true_positive + false_negative + false_positive)), digits = 3)
+error <- round(((false_negative + false_positive)/(true_negative + true_positive + false_negative + false_positive)), digits = 3)
+specificity <- round(((true_negative)/(true_negative + false_positive)), digits = 3)
+sensitivity <- round(((true_positive)/(true_positive + false_negative)), digits = 3)
+precision <- round(((true_positive)/(true_positive + false_positive)), digits = 3)
+balanced_accuracy <- round(((sensitivity + specificity)/2), digits = 3)
+paste0("Accuracy: ", accuracy)
+paste0("Error: ", error)
+paste0("Balanced Accuracy: ", balanced_accuracy)
+paste0("Specificity: ", specificity)
+paste0("Sensitivity: ", sensitivity)
+paste0("Precision: ", precision)
+
+```
+
+### a(iv) Plot a ROC curve on your held out test dataset. (Make sure you use library(ROCR) to use the ROC-specific APIs.) 
+```{r} 
+library(ROCR)
+
+pred <- predict(model, test.df, type="prob")
+pred_post <- prediction(pred[, 2], test.df$is_canceled)
+plot(performance(pred_post, "tpr", "fpr"))
+abline(0, 1, lty = 2)
+```
+
+### a(v) What is the AUC of the ROC curve. 
+
+```{r} 
+paste0("AUC:", as.numeric(performance(pred_post, "auc")@y.values))
+
+```
+
+# 2.3 Having fun with pruning!
+
+## (a) In Problem 2.2 you created the best decision tree using a certain number of predictors. Using the same predictors, re- train the model on the training dataset except in this problem, you will set the complexity parameter to 0.0. (See the manual page for rpart() and figure out how to set the complexity parameter. Hint: look for the control parameter.) Do not plot the model, as the tree is too deep to be plotted.
+Using your model, predict the held-out dataset and paste0 the following information in the format shown below (round all numbers to 3 decimal places):
+Before pruning: 
+Accuracy: X.XXX 
+Error: X.XXX 
+Balanced Acc.: X.XXX 
+Specificity: X.XXX
+Sensitivity: X.XXX 
+Precision: X.XXX
+
+```{r} 
+paste0("Before pruning: ") 
+paste0("Accuracy: ", accuracy)
+paste0("Error: ", error)
+paste0("Balanced Accuracy: ", balanced_accuracy)
+paste0("Specificity: ", specificity)
+paste0("Sensitivity: ", sensitivity)
+paste0("Precision: ", precision)
+```
+
+## (b) Now, prune the tree using the prune() method. Find the point in the tree that you want to prune, and paste0 out the following (round all numbers to 5 decimal places):
+Prune point occurs at a complexity of X.XXXXX 
+At this complexity, xerror is X.XXXXX 
+
+```{r} 
+min_xerror_entry <- model$cptable[which.min(model$cptable[, "xerror"]), c("CP","xerror")]
+xerr <- min_xerror_entry["xerror"]
+cpx <- min_xerror_entry["CP"]
+paste0("Prune point occurs at a complexity of ", round(cpx, 5))
+paste0("At this complexity, error is ", round(xerr, 5))
+```
+
+
+## (c) Using this pruned tree, predict the held-out dataset and paste0 the following information in the format shown below (round all numbers to 3 decimal places):
+After pruning:
+Accuracy: X.XXX 
+Error: X.XXX 
+Balanced Acc.: X.XXX 
+Specificity: X.XXX 
+Sensitivity: X.XXX 
+Precision: X.XXX 
+
+```{r} 
+pruned.model <- prune(model, cp=cpx)
+pred <- predict(pruned.model, test.df, type="class")
+
+confusion_matrix <- table(pred, test.df$is_canceled)
+true_negative <- confusion_matrix[1, 1]
+true_positive <- confusion_matrix[2, 2]
+false_negative <- confusion_matrix[1, 2]
+false_positive <- confusion_matrix[2, 1]
+
+accuracy <- round(((true_negative + true_positive)/(true_negative + true_positive + false_negative + false_positive)), digits = 3)
+error <- round(((false_negative + false_positive)/(true_negative + true_positive + false_negative + false_positive)), digits = 3)
+specificity <- round(((true_negative)/(true_negative + false_positive)), digits = 3)
+sensitivity <- round(((true_positive)/(true_positive + false_negative)), digits = 3)
+precision <- round(((true_positive)/(true_positive + false_positive)), digits = 3)
+balanced_accuracy <- round(((sensitivity + specificity)/2), digits = 3)
+paste0("After pruning:")
+paste0("  Accuracy: ", accuracy)
+paste0("  Error: ", error)
+paste0("  Balanced Acc.: ", balanced_accuracy)
+paste0("  Specificity: ", specificity)
+paste0("  Sensitivity: ", sensitivity)
+paste0("  Precision: ", precision)
+```
+
+## (d) Which model --- the full tree, or the pruned tree --- generalizes better. 
+Your output should be of the form: The __________ tree generalizes better. 
+
+```{r} 
+print("The full tree generalizes better.") 
+``` 
+
+
+## (e) In Problem 2.2, you created the best decision tree model. Which model among the three models --- 
+(1) model in Problem 2.2, 
+(2) model in Problem 2.3(a), 
+(3) model in Problem 2.3(b) --- generalizes the best? 
+
+Among all three models, the model in Problem 2.3(a) generalized the best. 
+It had the highest accuracy rate compared to the others and than Problem 2.2, and the pruned version had much less accuracy than the other two. 
+

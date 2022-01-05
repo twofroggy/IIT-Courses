@@ -1,0 +1,249 @@
+---
+title: "CS 422: Homework #7"
+author: "Tiffany Wong, Illinois Institute of Technology"
+output:
+  html_document:
+    toc: yes
+    df_print: paged
+  html_notebook:
+    toc: yes
+    toc_float: yes
+--- 
+
+# 2.1 Feed Forward Neural Networks
+
+```{r}  
+library(keras)
+library(dplyr)
+library(caret)
+library(tidyr)
+library(ggplot2)
+```
+
+
+```{r}
+rm(list=ls())
+
+# Set working directory as needed
+setwd("/Users/tiffwong/Desktop/cs422/hw/hw 7/")
+
+df <- read.csv("activity-small.csv")
+
+# Seed the PRNG
+set.seed(1122)
+df <- df[sample(nrow(df)), ] # Shuffle, as all of the data in the .csv file
+                             # is ordered by label!  This will cause problems
+                             # if we do not shuffle as the validation split
+                             # may not include observations of class 3 (the
+                             # class that occurs at the end).  The validation_
+                             # split parameter samples from the end of the
+                             # training set.
+
+# Scale the dataset.  Copy this block of code as is and use it; we will get
+# into the detail of why we scale.  We will scale our dataset so all of the
+# predictors have a mean of 0 and standard deviation of 1.  Scale test and
+# training splits independently!
+
+indx <- sample(1:nrow(df), 0.20*nrow(df))
+test.df  <- df[indx, ]
+train.df <- df[-indx, ]
+
+label.test <- test.df$label
+test.df$label <- NULL
+test.df <- as.data.frame(scale(test.df))
+test.df$label <- label.test
+rm(label.test)
+
+label.train <- train.df$label
+train.df$label <- NULL
+train.df <- as.data.frame(scale(train.df))
+train.df$label <- label.train
+rm(label.train)
+rm(indx)
+
+X_train <- select(train.df, -label)
+y_train <- train.df$label
+
+y_train.ohe <- to_categorical(y_train)
+
+X_test <- select(test.df, -label)
+y_test <- test.df$label
+y_test.ohe <- to_categorical(test.df$label) 
+```
+
+
+## (a) Create a neural network and train it on the training dataset so it predicts one of the four classes: {0, 1, 2, 3}. You can play around with using different activation functions (sigmoid, relu, tanh) in the hidden layesr. Your network must have only one hidden layer for this question.
+
+```{r}
+model <- keras_model_sequential()
+model %>%
+  layer_dense(units = 8, activation = 'relu') %>%
+  layer_dense(units = 4, activation = 'softmax')
+
+model %>% 
+  compile(loss = "categorical_crossentropy", 
+          optimizer="adam", 
+          metrics=c("accuracy"))
+
+
+model %>% fit(
+  data.matrix(X_train), 
+  y_train.ohe,
+  epochs=100,
+  batch_size=1,
+  validation_split=0.20
+)
+
+model %>% evaluate(as.matrix(X_test), y_test.ohe)
+pred.prob <- predict(model, as.matrix(X_test))
+pred.class <- apply(pred.prob, 1, function(x) which.max(x)-1)
+confusionMatrix(as.factor(pred.class), as.factor(y_test))
+
+print("Batch gradient descent ")
+print("Overall accuracy: 78.50")
+print("Class 0: Sens. = 96.49, Spec. = 94.41, Bal.Acc = 95.45")
+print("Class 1: Sens. = 83.02, Spec. = 86.39, Bal.Acc = 84.71")
+print("Class 2: Sens. = 90.48, Spec. = 93.04, Bal.Acc = 91.76")
+print("Class 3: Sens. = 41.67, Spec. = 97.37, Bal.Acc = 69.52")
+```
+## (b) Here, we try mini-batch gradient descent.
+Using the neural network from (a), train the network for 100 epochs using the following batch sizes: 1, 32, 64, 128, 256, while keeping all other parameters the same as in (a). (You are now doing mini-batch gradient descent.)
+Each time you train the network with the batch size, time how long it takes to train the network.
+
+```{r} 
+create_model <- function(){
+  model <- keras_model_sequential()
+  model %>%
+    layer_dense(units = 8, activation = 'relu') %>%
+    layer_dense(units = 4, activation = 'softmax')
+  
+  model %>% 
+    compile(loss = "categorical_crossentropy", 
+            optimizer="adam", 
+            metrics=c("accuracy"))
+  
+  return(model)
+}
+
+for (batch in c(1, 32, 64, 128, 256)){
+  model <- NULL
+  model <- create_model()
+  
+  begin <- Sys.time()
+  
+  print(batch)
+  
+  model %>% fit(
+  data.matrix(X_train), 
+  y_train.ohe,
+  epochs=100,
+  batch_size=batch,
+  validation_split=0.20
+)
+  end <- Sys.time()
+  
+  totalTime <- end - begin
+  print(totalTime)
+  
+  model %>% evaluate(as.matrix(X_test), y_test.ohe)
+  pred.prob <- predict(model, as.matrix(X_test))
+  pred.class <- apply(pred.prob, 1, function(x) which.max(x)-1)
+  print(confusionMatrix(as.factor(pred.class), as.factor(y_test)))
+} 
+
+print("Batch size: 1")
+print("Time taken to train neural network: 45.86 seconds")
+print("Overall accuracy: 76.50")
+print("Class 0: Sens. = 96.49, Spec. = 95.80, Bal.Acc = 96.15")
+print("Class 1: Sens. = 79.25, Spec. = 85.71, Bal.Acc = 82.48")
+print("Class 2: Sens. = 85.71, Spec. = 91.77, Bal.Acc = 88.74")
+print("Class 3: Sens. = 41.67, Spec. = 95.39, Bal.Acc = 68.53")
+
+print("Batch size: 32")
+print("Time taken to train neural network: 15.01 seconds")
+print("Overall accuracy: 77.00")
+print("Class 0: Sens. = 98.25, Spec. = 94.41, Bal.Acc = 96.33")
+print("Class 1: Sens. = 83.02, Spec. = 83.67, Bal.Acc = 83.35")
+print("Class 2: Sens. = 85.71, Spec. = 94.94, Bal.Acc = 90.33")
+print("Class 3: Sens. = 37.50, Spec. = 96.05, Bal.Acc = 66.78")
+
+print("Batch size: 64")
+print("Time taken to train neural network: 14.18 seconds")
+print("Overall accuracy: 76.00")
+print("Class 0: Sens. = 98.25, Spec. = 93.71, Bal.Acc = 95.98")
+print("Class 1: Sens. = 75.47, Spec. = 87.07, Bal.Acc = 81.27")
+print("Class 2: Sens. = 88.10, Spec. = 93.67, Bal.Acc = 90.88")
+print("Class 3: Sens. = 39.58, Spec. = 93.42, Bal.Acc = 66.50")
+
+print("Batch size: 128")
+print("Time taken to train neural network: 13.50 seconds")
+print("Overall accuracy: 72.50")
+print("Class 0: Sens. = 98.25, Spec. = 93.01, Bal.Acc = 95.63")
+print("Class 1: Sens. = 69.81, Spec. = 86.39, Bal.Acc = 78.10")
+print("Class 2: Sens. = 76.19, Spec. = 93.04, Bal.Acc = 84.61")
+print("Class 3: Sens. = 41.67, Spec. = 90.79, Bal.Acc = 66.23")
+
+print("Batch size: 256")
+print("Time taken to train neural network: 13.45 seconds")
+print("Overall accuracy: 63.00")
+print("Class 0: Sens. = 98.25, Spec. = 89.51, Bal.Acc = 93.88")
+print("Class 1: Sens. = 7.55, Spec. = 95.92, Bal.Acc = 51.73")
+print("Class 2: Sens. = 85.71 , Spec. = 94.30, Bal.Acc = 90.01")
+print("Class 3: Sens. = 62.50, Spec. = 71.05, Bal.Acc = 66.78")
+
+``` 
+
+## (c) Analyze the output from the mini-batch gradient descent.
+
+### c(i) Why do you think that the time vary as you increase the batch size?
+The time varies with batch size as an increase in batch size leads to a decrease in training time. This is because the data set is divided into larger sets which helps in reducing the amount of memory needed to train the model but at the cost of accuracy.
+
+
+### (ii) Comment on the output from the mini-batch gradient descent. Does overall accuracy, balanced accuracy and per-class statistics remain the same? Change? If change, why?
+As the batch size increased the overall accuracy as well as the balanced accuracy decreased while the sensitivity remained unchanged. This decrease in accuracy is because the stochastic of the gradient descent is decreased as the batch size increases.
+
+
+## (d) Starting with the network in (a), add one more hidden layer to your network and re-train your model and see if adding a second hidden layer produces better performance. Note that deciding how many layers to add and how many neurons per layer is more of an art than an exact science. There are some heuristics, but a lot of experience comes from playing with the neural network and observing its performance as layers (and neurons) are added. I will let you experiment with the number of neurons and specific activation function in the new hidden layer.
+
+```{r}
+model <- keras_model_sequential()
+model %>%
+  layer_dense(units = 16, activation = 'relu') %>%
+  layer_dense(units = 8, activation = 'relu') %>%
+  layer_dense(units = 4, activation = 'softmax')
+
+model %>% 
+  compile(loss = "categorical_crossentropy", 
+          optimizer="adam", 
+          metrics=c("accuracy"))
+
+model %>% fit(
+  data.matrix(X_train), 
+  y_train.ohe,
+  epochs=100,
+  batch_size=1,
+  validation_split=0.20
+)
+
+model %>% evaluate(as.matrix(X_test), y_test.ohe)
+pred.prob <- predict(model, as.matrix(X_test))
+pred.class <- apply(pred.prob, 1, function(x) which.max(x)-1)
+confusionMatrix(as.factor(pred.class), as.factor(y_test))
+
+#i & ii
+print("Batch gradient descent ")
+print("Overall accuracy: 85.00")
+print("Class 0: Sens. = 92.98, Spec. = 97.90, Bal.Acc = 95.44")
+print("Class 1: Sens. = 84.91, Spec. = 93.20, Bal.Acc = 89.05")
+print("Class 2: Sens. = 90.48, Spec. = 93.67, Bal.Acc = 92.07")
+print("Class 3: Sens. = 70.83, Spec. = 95.39, Bal.Acc = 83.11")
+
+``` 
+
+
+### d(a)
+After adding a new hidden layer to the neural network, the time it takes to train it increases along with the overall accuracy & balanced accuracy for all of the classes. However, there was a decrease in sensitivity and specificity for each class compared to the model trained in part(a). 
+
+
+
+

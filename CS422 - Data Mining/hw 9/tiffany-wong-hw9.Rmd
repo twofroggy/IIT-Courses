@@ -1,0 +1,222 @@
+---
+title: "CS 422: Homework #9"
+author: "Tiffany Wong, Illinois Institute of Technology"
+output:
+  html_document:
+    toc: yes
+    df_print: paged
+  html_notebook:
+    toc: yes
+    toc_float: yes
+--- 
+
+# 2.1 Association Analysis
+
+```{r} 
+library(arules)
+library(arulesViz)
+setwd("/Users/tiffwong/Desktop/cs422/hw/hw 9/")
+rm(list=ls())
+library(plyr)
+```
+
+## a) 
+For each series of transaction files (i.e., tr-5k.csv, tr-20k.csv, ...) create a canonical representation of the transaction file. A canonical representation for each dataset will be a file that contains a list of product names (not IDs) on a line, each product separated by a comma and a newline ends the line. 
+
+
+For each transaction dataset, I wrote Python code that reads it in a dataframe and names the max number of columns that exists. Then, I just defined a find and replace function that I called recursively to run through all the files. Finally, I made sure to output the file into another name with the suffix "-canonical". 
+
+```{r} 
+#### Read the data directly in as **transactions** and inspect them.
+tr1k <- read.transactions("canonical datasets/tr-1k-canonical.csv", sep=",") 
+summary(tr1k)
+#inspect(tr1k[1:5])
+```
+
+## b) 
+Given the database of transactions, where each transaction is a list of items, find rules that associate the presence of one set of items with that of another set of items. Ideally, we only want to find rules that are substantiated by the data; we want to avoid spurious associations.
+Find association rules that exceed specific values of minimum support and minimum confidence. You are free to experiment with different values until you find something that produces meaningful results. However, be aware that if you specify minimum support or confidence very low, your R process may appear to “hang” as the many itemsets are mined. In such a case, restart R. Use a structured approach by first reading the documentation to understand what the default value of minsup and minconf is, and then experiment from there.
+Recall that finding rules requires two steps: finding the frequent itemsets and discovering strong association rules within them. You will use the R arules package as shown in class.
+Your output should contain the following:
+ 
+• For each frequent itemset:
+1. All items in it, described by the product names.
+2. The support of the itemset.
+
+• For each rule:
+1. The antecedent.
+2. The consequent.
+3. The support of the rule.
+4. The confidence of the rule.
+
+
+### experiments
+
+```{r} 
+rules <- apriori(tr1k)
+summary(rules)
+sprintf("I got 0 rules for default support = 0.1 and default confidence = 0.8.") 
+
+
+# lower sup and high conf increases num of rules 
+rules <- apriori(tr1k, parameter=list(support=0.001))
+summary(rules)
+sprintf("26099 rules for support = 0.001 and default confidence = 0.8") 
+
+
+# lower sup and lower conf increases num of rules  
+rules <- apriori(tr1k, parameter=list(support=0.001, confidence=0.5))
+summary(rules)
+sprintf("30896 rules for support = 0.001 and default confidence = 0.8") 
+
+
+# lower sup and lower conf increases num of rules  
+rules <- apriori(tr1k, parameter=list(support=0.001, confidence=0.5))
+summary(rules)
+sprintf("30896 rules for support = 0.001 and default confidence = 0.5") 
+
+ 
+# higher sup and higher conf is less rules
+rules <- apriori(tr1k, parameter=list(support=0.02, confidence=0.7))
+summary(rules)
+sprintf("60 rules for support = 0.02 and default confidence = 0.7") 
+
+
+# higher sup and higher conf is less rules
+rules <- apriori(tr1k, parameter=list(support=0.03, confidence=0.7))
+summary(rules)
+sprintf("25 rules for support = 0.03 and default confidence = 0.8") 
+
+
+# higher sup and higher conf is less rules
+rules <- apriori(tr1k, parameter=list(support=0.03, confidence=0.8))
+summary(rules)
+sprintf("21 rules for support = 0.03 and default confidence = 0.8") 
+
+
+# higher sup and higher conf is less rules
+rules <- apriori(tr1k, parameter=list(support=0.09, confidence=0.6))
+summary(rules)
+sprintf("3 rules for support = 0.04 and default confidence = 0.8") 
+``` 
+
+
+```{r} 
+setwd("/Users/tiffwong/Desktop/cs422/hw/hw 9/canonical datasets/") 
+
+
+datasets = c("tr-1k-canonical.csv", "tr-5k-canonical.csv", "tr-20k-canonical.csv", "tr-75k-canonical.csv") 
+for (file in datasets) { 
+  tr <- read.transactions(file) 
+  
+  f_is <- apriori(tr, parameter=list(support=0.03, confidence = 0.8, target="frequent itemsets")) 
+  inspect(sort(f_is, decreasing = T, by="count")) 
+  
+  rules <- rules1 <- apriori(tr, parameter = list(support=0.03,confidence=0.8)) 
+  inspect(sort(rules, by="confidence")) 
+  
+  print(file)
+  print(summary(rules))
+  }
+
+```
+
+## c) Given the above output, respond to the following question: Compare the rules you obtained for each different subset (1,000 – 75,000 transactions). How does the number of transactions affect the results you observed? (Write the answer in your R markup file, easily identified.)
+
+When comparing the rules obtained for each different subset (1,000 – 75,000 transactions), it's looking like the number of transactions and the support level have an inverse relationship. When the support level decreases, the number of transactions increase. For example, for the 1k and 75k datasets, I use the same support level, but the number of rules increases.  
+For each dataset, these were the number of rules I got: 
+tr-1k -> 5 rules 
+tr-5k -> 5 rules 
+tr-20k -> 1 rule  
+tr-75k -> 1 rule 
+
+## d) Answer the following questions for the 75,000 transactions dataset using the same support level as determined in (b):
+(i) What is the most frequently purchased item or itemset? 
+Coffee Eclair
+
+(ii) What is the least frequently purchased item or itemset?
+Marzipan Cookie, Tulie Cookie
+
+
+```{r}
+library (readr)
+
+urlfile="https://raw.githubusercontent.com/sap9433/CS422-IIT-AllAssignments/master/solutionHW4/Deliverable/userprofile.csv"
+
+mydata<-read_csv(url(urlfile))
+
+write_csv(mydata, "/Users/tiffwong/Desktop/cs422/hw/hw 9/userprofile.csv")
+```
+
+
+# 2.2 Recommender Systems (Content-based recommendations) (EXTRA CREDIT) 
+
+```{r}
+library(textreuse)
+library(lsa) 
+
+
+x <- 20442087 %% 671
+paste("user", x)
+```
+
+```{r}
+# randomly choose 10 movies from the movies.csv file
+setwd("/Users/tiffwong/Desktop/cs422/hw/hw 9/ml-latest-small/")
+set.seed(100)
+movies <- read.csv("movies.csv", header=T, sep=",")
+sample <- sample(1:nrow(movies), 10)
+moviesample <- movies[sample, ]
+moviesample$movieId
+```
+
+#### Building a user profile
+
+```{r} 
+userProfile <- read.csv("/Users/tiffwong/Desktop/cs422/hw/hw 9/userprofile.csv", header=T, sep=",", check.names=FALSE)  
+#head(userProfile)
+allGenres <- c("Action", "Adventure", "Animation", "Children", "Comedy", "Crime", "Documentary", "Drama", "Fantasy", 'Film-Noir', "Horror", "IMAX", "Musical", "Mystery", "Romance", "Sci-Fi", "Thriller", "War", "Western")
+for (row in 1:nrow(userProfile)) {
+  genres <- as.list(strsplit(toString(movies[movies$movieId == userProfile[row, ]$X,]$genres), "[|]")[[1]])
+  for (g in genres) {
+    userProfile[row, g] = 1
+  }
+}
+for (g in allGenres) {
+  print(g) 
+  print(sum(userProfile[, g])) 
+  userProfile["avg", ] <- colMeans(userProfile)
+}
+userProfile <- userProfile[, 1:21]
+userProfile
+```
+
+
+#### Creating a Movie profile
+
+```{r}
+movieProfile <- read.csv("/Users/tiffwong/Desktop/cs422/hw/hw 9/movieprofile.csv", header=T, sep=",", check.names=FALSE)
+allGenres <- c("Action", "Adventure", "Animation", "Children", "Comedy", "Crime", "Documentary", "Drama", "Fantasy", "Film-Noir", "Horror", "IMAX", "Musical", "Mystery", "Romance", "Sci-Fi", "Thriller", "War", "Western")
+for (row in 1:nrow(movieProfile)) {
+  genres <- as.list(strsplit(toString(movies[movies$movieId == movieProfile[row, ]$X, ]$genres),"[|]")[[1]])
+  for (g in genres) {
+    movieProfile[row, g] = 1
+  }
+}
+movieProfile <- movieProfile[, 1:21]
+movieProfile
+```
+
+
+#### Run Cosine similarity
+
+```{r}
+options("digits"=5)
+for(i in 1:nrow(movieProfile)){
+  score <- lsa::cosine(as.numeric(userProfile["avg",-1]), as.numeric(movieProfile[movieProfile$X == movieProfile[i,'X'],-1]))[[1]]
+movieId <- movieProfile[movieProfile$X == movieProfile[i,'X'],1]
+title <- as.vector(movies[movies$movieId == movieId,"title"])[1]
+cat("Movie ", title, ", and similarity score ", score , "\n")
+} 
+
+``` 

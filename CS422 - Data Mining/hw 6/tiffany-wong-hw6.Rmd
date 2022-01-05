@@ -1,0 +1,93 @@
+---
+title: "CS 422: Homework #6"
+author: "Tiffany Wong, Illinois Institute of Technology"
+output:
+  html_document:
+    toc: yes
+    df_print: paged
+  html_notebook:
+    toc: yes
+    toc_float: yes
+--- 
+
+# 2.1 Grid search and Random Forests 
+
+```{r}
+# import libraries 
+library(rpart)
+library(rpart.plot)
+library(caret)
+library(randomForest)
+```
+
+## (a) Determine the best model by examining balanced accuracy, sensitivity, and specificity as shown in the confusion matrix from the held-out test dataset, and picking the model that shows the maximum balanced accuracy, sensitivity and specificity. 
+
+```{r} 
+# Set working directory as needed
+setwd("/Users/tiffwong/Desktop/cs422/hw/hw 6/")
+df <- read.csv("hotel_bookings.csv")
+df$is_canceled <- factor(df$is_canceled)
+
+set.seed(1122)
+index <- sample(1:nrow(df), 0.90*dim(df)[1])
+train.df <- df[index, ]
+test.df <- df[-index, ]
+
+ntree_vals <- c(250, 500, 750)
+mtry_calc <- function(n, add_term) {
+    floor(sqrt(n)) + add_term
+}
+
+# deposit_type + customer_type + is_repeated_guest + days_in_waiting_list
+num_predictors <- 4
+
+TRAIN_SWITCH <- 1
+
+oob_estimates <- rep(0, 9)
+confusion_matrices <- c()
+index <- 0
+
+for (ntree in ntree_vals) {
+    for (mtry_add_term in 0:2) {
+        if (TRAIN_SWITCH > 0) {
+            mtry <- mtry_calc(num_predictors, mtry_add_term)
+            model <- randomForest(is_canceled ~ deposit_type + customer_type + is_repeated_guest + days_in_waiting_list, data=train.df, ntree=ntree, mtry=mtry)
+            oob_estimate <- mean(model$err.rate[,1])
+            pred <- predict(model, test.df, type="class")
+            cfmatrix <- confusionMatrix(pred, test.df$is_canceled, positive="1")
+            oob_estimates[index] <- oob_estimate
+            confusion_matrices <- append(confusion_matrices, cfmatrix)
+            index <- index + 1
+            rm(model)
+        }
+    }
+}
+```
+
+## (b) Determine the best model bu examining the lowest (minimum) OOB error rate. Print out the best model as shown below:
+
+```{r}
+minimum_oob_idx <- which.min(oob_estimates)
+reduced_matrices <- c(confusion_matrices[4], confusion_matrices[10], confusion_matrices[16], confusion_matrices[22], confusion_matrices[28], confusion_matrices[34], confusion_matrices[40], confusion_matrices[46], confusion_matrices[52])
+maximum_ba_idx <- which.max(lapply(reduced_matrices, function(x) x["Balanced Accuracy"]))
+
+best_model_ba <- maximum_ba_idx
+best_model_oob <- minimum_oob_idx
+
+print("Maximum Balanced Accuracy: ")
+paste0("- ntree = ", ntree_vals[((best_model_ba %% 3) + 1)])
+paste0("- mtry = floor(sqrt(n)) + ", (best_model_ba %% 3))
+
+print("Minimum OOB Error: ")
+paste0("- ntree = ", ntree_vals[((best_model_oob %% 3) + 1)])
+paste0("- mtry = floor(sqrt(n)) + ", (best_model_oob %% 3))
+
+```
+
+## (c) Is the best model as determined by (a) the same model as determined by (b). Justify your answer.
+
+
+- According to the maximum balanced accuracy, the best model is when ntree = 250 and mtry = floor(sqrt(n)) + 2.
+- According to the lowest OOB error, the best model is when ntree = 250 and mtry = floor(sqrt(n)) + 2.
+
+The models are the same because the balanced accuracy is a metric that is related to the error, so for example, if the model has a higher accuracy, it will have a lower error. 
