@@ -1,1 +1,1 @@
-These are the files from my CS422 course at Illinois Tech. 
+Data mining can be covered at different levels. The focus of this course is the understanding of algorithms and techniques used in data mining. Students in the course are expected to write computer programs implementing different techniques taught in the course. The course requires mathematical background and some programming experience. This course does not intend to teach how to use a specific software application. While software API will be used in the course it is by no means the primary goal of this course.
